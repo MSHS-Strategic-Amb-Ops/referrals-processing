@@ -430,8 +430,8 @@ referral_vol$referral_age <- difftime(report_run_date, as.Date(referral_vol$Star
 path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
 saveRDS(referral_vol, paste0(path,"referral_vol.rds"))
 
-rm(referral_vol)
-invisible(gc())
+# rm(referral_vol)
+# invisible(gc())
 
 ```
 
