@@ -1,0 +1,589 @@
+---
+output:
+  html_document:
+    toc: yes
+    toc_depth: 6
+    toc_float:
+      collapsed: yes
+    fig_width: 7
+    fig_height: 6
+---
+
+
+<style type="text/css">
+div.main-container {
+  max-width: 2000px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+<style>
+.tocify {
+color: black;
+}
+<!-- } -->
+<!-- .tocify .tocify-header { -->
+<!--     position: fixed; -->
+<!--     <!-- top: 50px; --> -->
+<!--     left: 50px; -->
+<!--     width: 350px; -->
+<!--     <!-- border: solid 3px black; --> -->
+<!--     <!-- height: 200px; --> -->
+<!--  border: none; -->
+<!-- } -->
+.tocify .tocify-header .active {
+color: white;
+background: #d80b8c;
+font-weight: bold;
+}
+<!-- .tocify .tocify-item { -->
+<!-- background: white; -->
+<!-- color: black; -->
+<!--  border: none; -->
+<!-- } -->
+</style>
+<style>
+  .nav-pills>li>a:hover, .nav-pills>li>a:focus, .nav-pills>li.active>a,     .nav-pills>li.active>a:hover, .nav-pills>li.active>a:focus{
+     background-color: #212070;
+     }
+</style>
+<style>
+.container { width: 1800px; }
+h2 {
+  background-color: #dddedd;
+  color: black;
+  text-indent: 20px;
+  <!-- font-weight: bold; -->
+}
+h3 {
+  background-color: #f2f2f2;
+  color: black;
+  text-indent: 20px;
+  <!-- font-weight: bold; -->
+}
+h4 {
+  <!-- background-color: #dddedd; -->
+  <!-- color: black; -->
+  text-indent: 50px;
+  <!-- font-weight: bold; -->
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+
+```{r Load Packages, echo = FALSE, warning = FALSE, message = FALSE}
+
+# # Load packages -----------------------------------------------------------------------------------
+suppressMessages({
+  memory.limit(size = 8000000)
+  library(readxl)
+  library(writexl)
+  library(plyr)
+  library(dplyr)
+  library(data.table)
+  library(zoo)
+  library(shiny)
+  library(shinydashboard)
+  library(shinydashboardPlus)
+  library(shinyWidgets)
+  library(htmlwidgets)
+  library(lubridate)
+  library(tcltk)
+  library(tidyverse)
+  library(plotly)
+  library(knitr)
+  library(kableExtra)
+  library(leaflet)
+  library(grid)
+  library(gridExtra)
+  library(eeptools)
+  library(ggQC)
+  library(zipcodeR)
+  library(utils)
+  library(scales)
+  library(chron)
+  library(bupaR)
+  library(shiny)
+  library(DT)
+  library(DiagrammeR)
+  library(shinyalert)
+  library(edeaR)
+  library(processmapR)
+  library(processmonitR)
+  library(processanimateR)
+  library(tidyr)
+  library(lubridate)
+  library(RColorBrewer)
+  library(DiagrammeR)
+  library(ggplot2)
+  library(leaflet)
+  library(readr)
+  library(highcharter)
+  library(ggforce) # for 'geom_arc_bar'
+  library(packcircles) # for packed circle graph
+  library(viridis)
+  library(ggiraph)
+  library(treemapify)
+  library(treemap)
+  library(broom)
+  library(extrafont)
+  library(tis) # for US holidays
+  library(vroom)
+  library(sjmisc)
+  library(tools)
+  library(here)
+  library(shinyBS)
+  library(shinyscreenshot)
+  library(fasttime)
+  library(shinycssloaders)
+  library(feather)
+  # library(zipcodeR)
+  library(formattable)
+  library(shinyjs)
+  library(janitor)
+  library(patchwork)
+  library(flexdashboard)
+  # library(tidyverse)
+  # library(viridis)
+  # library(hrbrthemes)
+  # library(plotly)
+  # install.packages("bsts")
+  library(bsts)
+  library(reactable)
+  # install.packages("reactablefmtr")
+  library(reactablefmtr)
+  library(svDialogs)
+  # library(openxlsx)
+  library(flextable)
+  library(officedown)
+  library(officer)
+  library(magrittr)
+  library(webshot) 
+  library(png)
+  library(ggh4x)
+  library(RODBC)
+  library(DBI)
+  library(odbc)
+  library(dbplyr)
+  library(pool)
+  library(emojifont)
+})
+
+
+```
+
+
+```{r Graph asthetics, echo = FALSE, warning = FALSE, message = FALSE}
+### Color Functions for Graphs ============================================================
+
+# Mount Sinai corporate colors "USE THIS TO ADD COLORS"
+MountSinai_colors <- c(
+  `dark purple`  = "#212070",
+  `dark pink`    = "#d80b8c",
+  `dark blue`    = "#00aeef",
+  `dark grey`    = "#7f7f7f",
+  `yellow`       = "#ffc000",
+  `purple`       = "#7030a0",
+  `med purple`   = "#5753d0",
+  `med pink`     = "#f75dbe",
+  `med blue`     = "#5cd3ff",
+  `med grey`     = "#a5a7a5",
+  `light purple` = "#c7c6ef",
+  `light pink`   = "#fcc9e9",
+  `light blue`   = "#c9f0ff",
+  `light grey`   = "#dddedd"
+  )
+
+# Function to extract Mount Sinai colors as hex codes
+# Use Character names of MountSinai_colors
+
+MountSinai_cols <- function(...) {
+  cols <- c(...)
+  
+  if (is.null(cols))
+    return (MountSinai_colors)
+  
+  MountSinai_colors[cols]
+}
+
+# Color Function that can be used to call all colors is "MountSinai_cols()"
+# Use in ggplot 
+
+  #MountSinai_cols()       # will provide all colors and their hex codes in a table 
+  #MountSinai_cols("pink") # will provide color name and the hex code for the pink color
+
+# Create palettes 
+MountSinai_palettes <- list(
+  `all`   = MountSinai_cols("dark purple","dark pink","dark blue","dark grey",
+                            "med purple","med pink","med blue","med grey", 
+                            "light purple","light pink","light blue","light grey"),
+  
+  `main`  = MountSinai_cols("dark purple","dark pink","dark blue","dark grey"),
+  
+  `purple`  = MountSinai_cols("dark purple","med purple","light purple"),
+  
+  `pink`  = MountSinai_cols("dark pink","med pink","light pink"),
+  
+  `blue`  = MountSinai_cols("dark blue", "med blue", "light blue"),
+  
+  `grey`  = MountSinai_cols("dark grey", "med grey", "light grey"),
+  
+  `purpleGrey` = MountSinai_cols("dark purple", "dark grey"),
+  
+  `pinkBlue` = MountSinai_cols("dark pink", "dark blue")
+  
+)
+
+# MountSinai_palettes
+# Return function to interpolate a Mount Sinai color palette
+# default value is the main palette, reverse = True will change the order
+
+MountSinai_pal <- function(palette = "all", reverse = FALSE, ...) {
+  pal <- MountSinai_palettes[[palette]]
+  
+  if (reverse) pal <- rev(pal)
+  
+  colorRampPalette(pal, ...)
+}
+
+
+
+# Scale Function for ggplot can be used instead of scale_color_manual
+scale_color_MountSinai <- function(palette = "all", discrete = TRUE, reverse = FALSE, ...) {
+  pal <- MountSinai_pal(palette = palette, reverse = reverse)
+  
+  if (discrete) {
+    discrete_scale("colour", paste0("MountSinai_", palette), palette = pal, ...)
+  } else {
+    scale_color_gradientn(colours = pal(256), ...)
+  }
+}
+
+# Scale Fill for ggplot insetead of scale_fill_manual 
+scale_fill_MountSinai <- function(palette = "all", discrete = TRUE, reverse = FALSE, ...) {
+  pal <- MountSinai_pal(palette = palette, reverse = reverse)
+
+  if (discrete) {
+    discrete_scale("fill", paste0("MountSinai_", palette), palette = pal, ...)
+  } else {
+    scale_fill_gradientn(colours = pal(256), ...)
+  }
+}
+
+# Use in ggplot 
+  # scale_color_MountSinai("main")
+
+```
+
+
+```{r Global Functions, echo = FALSE, warning = FALSE, message = FALSE}
+
+'%!in%' <- function(x,y)!('%in%'(x,y)) # Does not include
+not_all_na <- function(x) all(!is.na(x)) # Exclude columns with All NAs
+
+```
+
+
+```{r Reporting Variables, echo = FALSE, warning = FALSE, message = FALSE}
+
+report_run_date <- Sys.Date()
+# report_run_date <- "2022-08-10"
+reporting_week <- floor_date(as.Date(report_run_date, "%Y-%m-%d")-7, unit="week", week_start = 7)
+reporting_week_prior <- floor_date(as.Date(report_run_date, "%Y-%m-%d")-14, unit="week", week_start = 7)
+reporting_week_next <- floor_date(as.Date(report_run_date, "%Y-%m-%d"), unit="week", week_start = 7)
+
+reporting_year <- format(as.Date(report_run_date), "%Y")
+reporting_month <- format(as.Date(report_run_date), "%b")
+reporting_monthNum <- format(as.Date(report_run_date), "%m")
+
+
+```
+
+
+```{r Referrals Data Importing, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Connect to Database ----------------------------------------------------------
+# conn1 <- odbcConnect("Caboodle") # Connect to Server
+
+conn1 <- dbPool(drv = odbc(), dsn = "Caboodle", timeout = 30)
+
+# Import Referrals+Visit Data --------------------------------------------------
+# referrals_raw <- sqlQuery(conn1, "SELECT * FROM PRDREPORT.FullAccess.Referrals") # Master Referrals Data
+referrals_conn <- tbl(conn1, "Referrals")
+referrals_raw <- referrals_conn %>%
+  mutate(StartInstant = as.Date(StartInstant)) %>%
+  filter(StartInstant >= as.Date("2022-04-01") & StartInstant <= report_run_date) %>%
+  filter(Status != "Canceled") %>%
+  collect()
+
+# Import Referrals Data for Addtional Referral Details -------------------------
+# referralFactAll <- sqlQuery(conn1, "SELECT TOP 10* FROM PRDREPORT.FullAccess.ReferralFact")
+referralFact_conn <- tbl(conn1, "ReferralFact")
+
+referralFact_raw <- referralFact_conn %>%
+  mutate(StartInstant = as.Date(StartInstant)) %>%
+  filter(StartInstant >= as.Date("2022-04-01") & StartInstant <= report_run_date) %>%
+  group_by(ReferralKey, StartInstant, `_CreationInstant`, `_LastUpdatedInstant`, LastEnteredWorkqueueDateKey_X,
+           LastEnteredWorkqueueTimeKey_X, LastEnteredWorkqueueName_X,
+           Class, Priority, Redirected, Rejected, TriageRejectionReason, InAnyWorkqueue, StatusReason, SchedulingStatus,
+           FirstCallMadeInstant, FirstEncounterCreatedInstant, FirstEncounterInstant, ExpirationInstant,
+           WasPatientContactedWithin12Hours_X,
+           ProfessionalChargeAmount, ProfessionalChargeEstimate, HospitalChargeEstimate) %>%
+  summarise(total = n()) %>%
+  collect() 
+
+referralFact_raw$total <- NULL
+
+# referralFact_all <- referralFact_conn %>%
+#   mutate(StartInstant = as.Date(StartInstant)) %>%
+#   filter(StartInstant == as.Date("2022-11-03")) %>%
+#   collect()
+
+# visitFact_conn <- tbl(conn1, "VisitFact")
+# visitFact_raw <- visitFact_conn %>%
+#   filter(AppointmentStatus == "Arrived") %>%
+#   filter(!is.na(PaymenetDue)) %>%
+#   head(10000) %>%
+#   collect()
+# referral_fact_all <- sqlQuery(conn1, "SELECT TOP 200 * FROM PRDREPORT.FullAccess.ReferralFact ORDER BY StartInstant")
+
+# Append Additional Referral Columns -------------------------------------------
+referrals_merged <- left_join(referrals_raw, subset(referralFact_raw, select = -c(StartInstant, Priority)))
+referrals_merged <- referrals_merged %>%
+  mutate(SentByDepID = as.character(SentByDepID),
+         ReceivedByDepID = as.character(ReceivedByDepID))
+
+```
+
+
+```{r Referrals Data Processing, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Referrals Raw Data Processing ------------------------------------------------
+## Priority Groups =============================================================
+referrals_merged <- referrals_merged %>%
+  mutate(createdWeek = floor_date(as.Date(StartInstant, "%Y-%m-%d"), unit="week", week_start = 7),
+         createdYear = format(as.Date(StartInstant, "%Y-%m-%d"),"%Y"),
+         createdMonNum = as.numeric(format(as.Date(StartInstant, "%Y-%m-%d"),"%m")),
+         createdMonth = format(as.Date(StartInstant, "%Y-%m-%d"),"%B"),
+         createdMonthYear = format(as.Date(StartInstant, "%Y-%m-%d"),"%m-%Y")) %>%
+  mutate(priority_type = case_when(str_detect(toupper(Priority), "CONVENIENCE") ~ "Patient Convenience"
+                                   ,str_detect(toupper(Priority), "2 DAYS") ~ "Within 2 Days"
+                                   ,str_detect(toupper(Priority), "1 WEEK") ~ "Within 1 Week"
+                                   ,str_detect(toupper(Priority), "2 WEEKS") ~ "Within 2 Weeks"
+                                   ,str_detect(toupper(Priority), "3-6 Days") ~ "Within 1 Week" # Question: Should this be a separate category?
+                                   ,str_detect(toupper(Priority), "7-14 Days") ~ "Within 2 Weeks"
+                                   ,Priority == "Routine" ~ "Routine"
+                                   ,TRUE ~ "Not Specified"))
+
+```
+
+
+```{r Unique Referral Volume Data, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Unique Referrals by Appointment Status -------------------------------------------------------
+referrals_processed <- referrals_merged %>%
+  group_by(ReferralKey) %>%
+  mutate(ApptStatusFinal = NA) %>%
+  mutate(ApptStatusFinal = case_when((is.na(ApptStatusFinal) & any(AppointmentStatus %in% c("Arrived","Completed"))) ~ "Arrived"
+                                     ,(is.na(ApptStatusFinal) & any(AppointmentStatus %in% c("No Show", "Left without seen"))) ~ "No Show"
+                                     ,(is.na(ApptStatusFinal) & any(AppointmentStatus == "Canceled")) ~ "Canceled"
+                                     ,(is.na(ApptStatusFinal) & any(AppointmentStatus %in% c("Scheduled","Confirmed"))) ~ "Scheduled"
+                                     ,TRUE ~ "Pending"))
+
+
+# Unique Referral Volume by Appointment Status -------------------------------------------------
+referral_vol <- referrals_processed %>%
+  group_by(SentBySite, SentByDepID, SentByDept, SentBySpecialty,  
+           ReceivedBySite, ReceivedByDepID, ReceivedByDept, ReceivedBySpecialty,
+           StartInstant, createdYear, createdMonthYear, createdMonNum, createdMonth, createdWeek, ReferralKey, ReferralEpicId, priority_type, ApptStatusFinal, 
+           Class, WasPatientContactedWithin12Hours_X, CreationToFirstEncounterDate, ExpirationInstant,
+           ProfessionalChargeEstimate, HospitalChargeEstimate, Redirected, Rejected, TriageRejectionReason, InAnyWorkqueue,
+           Patient_MRN, ICD_10_Chosen, 
+           Status, CloseReason, SchedulingStatus) %>%
+  summarise(total = n()) %>%
+  mutate(SentBySpecialty = case_when(SentByDept %in% c("MS EPICCARE LINK","MS RYAN CENTER LINK") ~ "ECL"
+                                # ,str_detect(toupper(SentByDept), "EMERGENCY") ~ "ED"
+                                # ,SentByDept == "EMERGENCY DEPARTMENT PSYCH" ~ "ED Psych"
+                                # ,SentByDept == "CPEP PSYCH ED BI" ~ "ED Psych"
+                                , TRUE ~ SentBySpecialty)) %>%
+  mutate(SentBySite = case_when(SentByDept %in% c("MS EPICCARE LINK","MS RYAN CENTER LINK") ~ "ECL"
+                                     # ,SentByDept == "EMERGENCY DEPT BI" ~ "MSBI"
+                                     # ,SentByDept == "EMERGENCY DEPT MORNINGSIDE" ~ "MSM"
+                                     # ,SentByDept == "EMERGENCY DEPT WEST" ~ "MSW"
+                                     # ,SentByDept == "EMERGENCY DEPARTMENT" ~ "MSH"
+                                     # ,SentByDept == "EMERGENCY DEPT QUEENS" ~ "MSQ"
+                                     # ,SentByDept == "EMERGENCY DEPT BI BROOKLYN" ~ "MSB"
+                                     # ,SentByDept == "EMERGENCY DEPARTMENT PSYCH" ~ "MSH"
+                                     # ,SentByDept == "CPEP PSYCH ED BI" ~ "MSBI"
+                                     ,TRUE ~ SentBySite))
+
+referral_vol$referral_age <- difftime(report_run_date, as.Date(referral_vol$StartInstant, "%Y-%m%-%d"), units = "days")
+  
+```
+
+
+```{r Referrals Data Output, echo = FALSE, warning = FALSE, message = FALSE}
+
+path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
+saveRDS(referral_vol, paste0(path,"referral_vol.rds"))
+
+rm(referral_vol)
+invisible(gc())
+
+```
+
+
+```{r Referral WQ Data Import, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Import WQ Data ---------------------------------------------------------------
+wq_history_conn <- tbl(conn1, "ReferralWorkqueueEventFactX")
+wq_reasons_conn <- tbl(conn1, "ReferralWQReasons")
+
+```
+
+
+```{r WQ Data Processing, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Subset WQ History Data based on Referrals Data -------------------------------
+wq_history_merged <- left_join(referral_vol[,c("ReferralKey", "ReferralEpicId", "Status", "SchedulingStatus", "InAnyWorkqueue", "priority_type")], 
+                               test <- wq_history_conn %>% 
+                                 filter(ReferralKey >= 0) %>%
+                                 # filter(ReferralType %in% c("TO","FROM")) %>% # Remove unspecified wq types 
+                                 filter(`_CreationInstant` >= as.Date("2022-04-01")) %>%
+                                 collect())
+
+wq_history_merged <- wq_history_merged %>% # Filter WQ History based on Referral IDs found in Referrals table
+  filter(ReferralKey %in% unique(referral_vol$ReferralKey))
+
+wq_history_merged <- wq_history_merged %>% 
+  filter(!is.na(EventDateKey)) %>%
+  mutate(EventDate = as.Date(lubridate::ymd(EventDateKey)),
+         EventTime = paste0(" ",sub('(\\d{2})$', ':\\1', EventTimeKey)),
+         EventTime = gsub(" :", "00:", EventTime),
+         EventTime = gsub(" ","",EventTime),
+         releaseDate = as.Date(lubridate::ymd(ReleaseDateKey))) %>%
+  mutate(EventDateTime = as.POSIXct(paste(EventDate, EventTime), format="%Y-%m-%d %H:%M"))
+
+wq_history_merged$releaseDate <- case_when(is.na(wq_history_merged$releaseDate) ~ Sys.Date(),
+                                           TRUE ~ wq_history_merged$releaseDate) 
+
+
+wq_history_merged <- wq_history_merged %>%
+  arrange(EventDateTime, releaseDate) %>%
+  arrange(ReferralKey) %>%
+  group_by(ReferralKey, EpicWorkqueueId, releaseDate) %>%
+  mutate(ID = seq_len(n())) %>%
+  mutate(wq_entered = min(EventDateTime),
+         wq_exited = max(releaseDate),
+         wq_latest_reason = case_when(EventDateTime == wq_entered & releaseDate == wq_exited ~ ReferralWorkqueueReason,
+                                      TRUE ~ ""))
+
+
+# Unique WQ Volume Data with WQ Entered and Existed Times
+wq_volume_data <- wq_history_merged %>%
+  filter(wq_latest_reason != "") %>%
+  group_by(ReferralKey, ReferralEpicId, InAnyWorkqueue, ReferralType, EpicWorkqueueId, wq_entered, wq_exited, wq_latest_reason) %>%
+  summarise(referral_type = n()) %>%
+  mutate(wq_entered = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%Y-%m-%d %HH:%MM:%SS"),
+         wq_enteredWeek = floor_date(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"), unit="week", week_start = 7),
+         wq_enteredYear = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%Y"),
+         wq_enteredMonNum = as.numeric(format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%m")),
+         wq_enteredMonth = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%B"),
+         wq_enteredMonthYear = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%m-%Y"),
+         wq_enteredDay = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%A")) %>%
+  mutate(wq_exitedWeek = floor_date(as.Date(wq_exited, "%Y-%m-%d"), unit="week", week_start = 7),
+         wq_exitedYear = format(as.Date(wq_exited, "%Y-%m-%d"),"%Y"),
+         wq_exitedMonNum = as.numeric(format(as.Date(wq_exited, "%Y-%m-%d"),"%m")),
+         wq_exitedMonth = format(as.Date(wq_exited, "%Y-%m-%d"),"%B"),
+         wq_exitedMonthYear = format(as.Date(wq_exited, "%Y-%m-%d"),"%m-%Y"),
+         wq_exitedDay = format(as.Date(wq_exited, "%Y-%m-%d"),"%A")) %>%
+  mutate(wq_latest_reason = toupper(wq_latest_reason)) %>%
+  mutate(reason_type = case_when(ReferralType == "FROM" & str_detect(wq_latest_reason, "DEACTIVATED OR INVALID|NO DEPT|WTC NEED") ~ "Missing department",
+                                 ReferralType == "FROM" & str_detect(wq_latest_reason, "OUTGOING") ~ "Outgoing Referral needs scheduling",
+                                 ReferralType == "FROM" & str_detect(wq_latest_reason, "TRIAGE") ~ "Triage rejected",
+                                 ReferralType == "FROM" & str_detect(wq_latest_reason, "PSYCH") ~ "Psych referrals",
+                                 ReferralType == "TO" & str_detect(wq_latest_reason, "NEEDS SCHEDULING|NEEDS TO BE WORKED|INCOMING REFERRAL NEEDS AUTH") 
+                                 ~ "Both scheduling and authorization outstanding",
+                                 ReferralType == "TO" & str_detect(wq_latest_reason, "AUTHORIZED AND NEED SCHEDULING|NEED SCHEDULING") ~ "Authorized but scheduling needed",
+                                 ReferralType == "TO" & str_detect(wq_latest_reason, "NEED AUTHORIZATION|NO AUTHORIZATION|INVALID AUTH NUMBER") ~ "Authorization needed",
+                                 ReferralType == "TO" & str_detect(wq_latest_reason, "UNABLE TO CONTACT") ~ "Unable to Contact Patient",
+                                 ReferralType == "TO" & str_detect(wq_latest_reason, " RFL INVALID AUTH NUMBER|W/O LINKED REFERRAL") ~ "Scheduled but Authorization is outstanding",
+                                 TRUE ~ "Other"
+                                 ))
+wq_volume_data$wq_entered <- format(as.Date(wq_volume_data$wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%Y-%m-%d")
+wq_volume_data$referral_age <- difftime(wq_volume_data$wq_exited, as.Date(wq_volume_data$wq_entered, "%Y-%m-%d"), units = "days")
+
+# wq_volume_data$ wq_enteredDay <- format(as.Date(wq_volume_data$wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%A")
+# wq_volume_data$wq_exitedDay = format(as.Date(wq_volume_data$wq_exited, "%Y-%m-%d"),"%A")
+# wq_volume_data$wq_entered <- format(as.Date(wq_volume_data$wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%Y-%m-%d")
+  
+```
+
+
+```{r Workqueue Data Output, echo = FALSE, warning = FALSE, message = FALSE}
+
+path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
+saveRDS(wq_volume_data, paste0(path,"wq_volume_data.rds"))
+
+rm(wq_volume_data)
+invisible(gc())
+
+```
+
+
+```{r WQ Reasons Processing, echo = FALSE, warning = FALSE, message = FALSE}
+
+wq_reasons_raw <- wq_reasons_conn %>%
+  collect() %>%
+  mutate(wq_type = case_when(str_detect(WorkqueueName, " TO ") ~ "TO",
+                             str_detect(WorkqueueName, " FROM ") ~ "FROM",
+                             str_detect(WorkqueueName, "TRIAGE") ~ "TRIAGE",
+                             str_detect(WorkqueueName, "AUTHORIZATION REQUIRED") ~ "AUTHORIZATION",
+                             str_detect(WorkqueueName, "PAS") ~ "PAS",
+                             TRUE ~ ""))
+
+wq_reasons_raw <- wq_reasons_raw %>%
+  filter(ReferralEpicId %in% unique(referral_vol$ReferralEpicId)) # Filter Current WQs by Referrals Found in Referrals Table
+
+
+## WQ Reasons Grouping ---------------------------------------------------------
+wq_reasons_raw <- wq_reasons_raw %>%
+  mutate(ReferralWorkqueueReason = toupper(ReferralWorkqueueReason)) %>%
+  mutate(reason_type = case_when(wq_type == "FROM" & str_detect(ReferralWorkqueueReason, "DEACTIVATED OR INVALID|NO DEPT|WTC NEED") ~ "Missing Department",
+                                 wq_type == "FROM" & str_detect(ReferralWorkqueueReason, "OUTGOING") ~ "Outgoing Referral Needs Scheduling",
+                                 wq_type == "FROM" & str_detect(ReferralWorkqueueReason, "TRIAGE") ~ "Triage Rejected",
+                                 wq_type == "FROM" & str_detect(ReferralWorkqueueReason, "PSYCH") ~ "Psych Referrals",
+                                 wq_type == "TO" & str_detect(ReferralWorkqueueReason, "AUTHORIZED AND NEED SCHEDULING|NEED SCHEDULING") ~ "Authorized but Scheduling Needed",
+                                 wq_type == "TO" & str_detect(ReferralWorkqueueReason, "NEED AUTHORIZATION|NO AUTHORIZATION") ~ "Authorization Needed",
+                                 wq_type == "TO" & str_detect(ReferralWorkqueueReason, "UNABLE TO CONTACT") ~ "Unable to Contact Patient",
+                                 TRUE ~ "Other"
+                                 )) %>%
+  mutate(creation_date = as.Date(lubridate::ymd(CreationDateKey)),
+         entry_date = as.Date(lubridate::ymd(EntryDateKey))) %>%
+  mutate(days_since_creation = difftime(Sys.Date(), creation_date, units = "days"),
+         days_wq = difftime(Sys.Date(), entry_date, units = "days"))
+
+
+wq_reasons_raw$priority_type <- referral_vol$priority_type[match(wq_reasons_raw$ReferralEpicId, referral_vol$ReferralEpicId)]
+wq_reasons_raw$WasPatientContactedWithin12Hours_X <- referral_vol$WasPatientContactedWithin12Hours_X[match(wq_reasons_raw$ReferralEpicId, referral_vol$ReferralEpicId)]
+
+
+# library(plyr)
+# duplicated_rows <- ddply(wq_reasons_raw,.(ReferralEpicId),nrow)
+
+wq_reasons_raw <- wq_reasons_raw %>%
+  distinct()
+
+```
+
+
+```{r Workqueue Data Output, echo = FALSE, warning = FALSE, message = FALSE}
+
+path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
+saveRDS(wq_reasons_raw, paste0(path,"wq_reasons_data.rds"))
+
+```
+
