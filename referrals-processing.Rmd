@@ -523,7 +523,7 @@ wq_volume_data$referral_age <- difftime(wq_volume_data$wq_exited, as.Date(wq_vol
 ```
 
 
-```{r Workqueue Data Output, echo = FALSE, warning = FALSE, message = FALSE}
+```{r Workqueue History Data Output, echo = FALSE, warning = FALSE, message = FALSE}
 
 path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
 saveRDS(wq_volume_data, paste0(path,"wq_volume_data.rds"))
@@ -580,7 +580,7 @@ wq_reasons_raw <- wq_reasons_raw %>%
 ```
 
 
-```{r Workqueue Data Output, echo = FALSE, warning = FALSE, message = FALSE}
+```{r Workqueue Reasons Data Output, echo = FALSE, warning = FALSE, message = FALSE}
 
 path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
 saveRDS(wq_reasons_raw, paste0(path,"wq_reasons_data.rds"))
