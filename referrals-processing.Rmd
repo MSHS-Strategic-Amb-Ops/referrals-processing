@@ -528,62 +528,62 @@ wq_volume_data$referral_age <- difftime(wq_volume_data$wq_exited, as.Date(wq_vol
 path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
 saveRDS(wq_volume_data, paste0(path,"wq_volume_data.rds"))
 
-rm(wq_volume_data)
-invisible(gc())
+# rm(wq_volume_data)
+# invisible(gc())
 
 ```
 
 
 ```{r WQ Reasons Processing, echo = FALSE, warning = FALSE, message = FALSE}
 
-wq_reasons_raw <- wq_reasons_conn %>%
-  collect() %>%
-  mutate(wq_type = case_when(str_detect(WorkqueueName, " TO ") ~ "TO",
-                             str_detect(WorkqueueName, " FROM ") ~ "FROM",
-                             str_detect(WorkqueueName, "TRIAGE") ~ "TRIAGE",
-                             str_detect(WorkqueueName, "AUTHORIZATION REQUIRED") ~ "AUTHORIZATION",
-                             str_detect(WorkqueueName, "PAS") ~ "PAS",
-                             TRUE ~ ""))
-
-wq_reasons_raw <- wq_reasons_raw %>%
-  filter(ReferralEpicId %in% unique(referral_vol$ReferralEpicId)) # Filter Current WQs by Referrals Found in Referrals Table
-
-
-## WQ Reasons Grouping ---------------------------------------------------------
-wq_reasons_raw <- wq_reasons_raw %>%
-  mutate(ReferralWorkqueueReason = toupper(ReferralWorkqueueReason)) %>%
-  mutate(reason_type = case_when(wq_type == "FROM" & str_detect(ReferralWorkqueueReason, "DEACTIVATED OR INVALID|NO DEPT|WTC NEED") ~ "Missing Department",
-                                 wq_type == "FROM" & str_detect(ReferralWorkqueueReason, "OUTGOING") ~ "Outgoing Referral Needs Scheduling",
-                                 wq_type == "FROM" & str_detect(ReferralWorkqueueReason, "TRIAGE") ~ "Triage Rejected",
-                                 wq_type == "FROM" & str_detect(ReferralWorkqueueReason, "PSYCH") ~ "Psych Referrals",
-                                 wq_type == "TO" & str_detect(ReferralWorkqueueReason, "AUTHORIZED AND NEED SCHEDULING|NEED SCHEDULING") ~ "Authorized but Scheduling Needed",
-                                 wq_type == "TO" & str_detect(ReferralWorkqueueReason, "NEED AUTHORIZATION|NO AUTHORIZATION") ~ "Authorization Needed",
-                                 wq_type == "TO" & str_detect(ReferralWorkqueueReason, "UNABLE TO CONTACT") ~ "Unable to Contact Patient",
-                                 TRUE ~ "Other"
-                                 )) %>%
-  mutate(creation_date = as.Date(lubridate::ymd(CreationDateKey)),
-         entry_date = as.Date(lubridate::ymd(EntryDateKey))) %>%
-  mutate(days_since_creation = difftime(Sys.Date(), creation_date, units = "days"),
-         days_wq = difftime(Sys.Date(), entry_date, units = "days"))
-
-
-wq_reasons_raw$priority_type <- referral_vol$priority_type[match(wq_reasons_raw$ReferralEpicId, referral_vol$ReferralEpicId)]
-wq_reasons_raw$WasPatientContactedWithin12Hours_X <- referral_vol$WasPatientContactedWithin12Hours_X[match(wq_reasons_raw$ReferralEpicId, referral_vol$ReferralEpicId)]
-
-
-# library(plyr)
-# duplicated_rows <- ddply(wq_reasons_raw,.(ReferralEpicId),nrow)
-
-wq_reasons_raw <- wq_reasons_raw %>%
-  distinct()
+# wq_reasons_raw <- wq_reasons_conn %>%
+#   collect() %>%
+#   mutate(wq_type = case_when(str_detect(WorkqueueName, " TO ") ~ "TO",
+#                              str_detect(WorkqueueName, " FROM ") ~ "FROM",
+#                              str_detect(WorkqueueName, "TRIAGE") ~ "TRIAGE",
+#                              str_detect(WorkqueueName, "AUTHORIZATION REQUIRED") ~ "AUTHORIZATION",
+#                              str_detect(WorkqueueName, "PAS") ~ "PAS",
+#                              TRUE ~ ""))
+# 
+# wq_reasons_raw <- wq_reasons_raw %>%
+#   filter(ReferralEpicId %in% unique(referral_vol$ReferralEpicId)) # Filter Current WQs by Referrals Found in Referrals Table
+# 
+# 
+# ## WQ Reasons Grouping ---------------------------------------------------------
+# wq_reasons_raw <- wq_reasons_raw %>%
+#   mutate(ReferralWorkqueueReason = toupper(ReferralWorkqueueReason)) %>%
+#   mutate(reason_type = case_when(wq_type == "FROM" & str_detect(ReferralWorkqueueReason, "DEACTIVATED OR INVALID|NO DEPT|WTC NEED") ~ "Missing Department",
+#                                  wq_type == "FROM" & str_detect(ReferralWorkqueueReason, "OUTGOING") ~ "Outgoing Referral Needs Scheduling",
+#                                  wq_type == "FROM" & str_detect(ReferralWorkqueueReason, "TRIAGE") ~ "Triage Rejected",
+#                                  wq_type == "FROM" & str_detect(ReferralWorkqueueReason, "PSYCH") ~ "Psych Referrals",
+#                                  wq_type == "TO" & str_detect(ReferralWorkqueueReason, "AUTHORIZED AND NEED SCHEDULING|NEED SCHEDULING") ~ "Authorized but Scheduling Needed",
+#                                  wq_type == "TO" & str_detect(ReferralWorkqueueReason, "NEED AUTHORIZATION|NO AUTHORIZATION") ~ "Authorization Needed",
+#                                  wq_type == "TO" & str_detect(ReferralWorkqueueReason, "UNABLE TO CONTACT") ~ "Unable to Contact Patient",
+#                                  TRUE ~ "Other"
+#                                  )) %>%
+#   mutate(creation_date = as.Date(lubridate::ymd(CreationDateKey)),
+#          entry_date = as.Date(lubridate::ymd(EntryDateKey))) %>%
+#   mutate(days_since_creation = difftime(Sys.Date(), creation_date, units = "days"),
+#          days_wq = difftime(Sys.Date(), entry_date, units = "days"))
+# 
+# 
+# wq_reasons_raw$priority_type <- referral_vol$priority_type[match(wq_reasons_raw$ReferralEpicId, referral_vol$ReferralEpicId)]
+# wq_reasons_raw$WasPatientContactedWithin12Hours_X <- referral_vol$WasPatientContactedWithin12Hours_X[match(wq_reasons_raw$ReferralEpicId, referral_vol$ReferralEpicId)]
+# 
+# 
+# # library(plyr)
+# # duplicated_rows <- ddply(wq_reasons_raw,.(ReferralEpicId),nrow)
+# 
+# wq_reasons_raw <- wq_reasons_raw %>%
+#   distinct()
 
 ```
 
 
 ```{r Workqueue Reasons Data Output, echo = FALSE, warning = FALSE, message = FALSE}
 
-path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
-saveRDS(wq_reasons_raw, paste0(path,"wq_reasons_data.rds"))
+# path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
+# saveRDS(wq_reasons_raw, paste0(path,"wq_reasons_data.rds"))
 
 ```
 
