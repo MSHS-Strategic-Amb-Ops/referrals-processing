@@ -326,14 +326,14 @@ referralFact_conn <- tbl(conn1, "ReferralFact")
 referralFact_raw <- referralFact_conn %>%
   mutate(StartInstant = as.Date(StartInstant)) %>%
   filter(StartInstant >= as.Date("2022-04-01") & StartInstant <= report_run_date) %>%
-  group_by(ReferralKey, StartInstant, `_CreationInstant`, `_LastUpdatedInstant`, LastEnteredWorkqueueDateKey_X,
+  group_by(ReferralKey, ReferredToDepartmentSpecialty, StartInstant, `_CreationInstant`, `_LastUpdatedInstant`, LastEnteredWorkqueueDateKey_X,
            LastEnteredWorkqueueTimeKey_X, LastEnteredWorkqueueName_X,
            Class, Priority, Redirected, Rejected, TriageRejectionReason, InAnyWorkqueue, StatusReason, SchedulingStatus,
            FirstCallMadeInstant, FirstEncounterCreatedInstant, FirstEncounterInstant, ExpirationInstant,
            WasPatientContactedWithin12Hours_X,
            ProfessionalChargeAmount, ProfessionalChargeEstimate, HospitalChargeEstimate) %>%
   summarise(total = n()) %>%
-  collect() 
+  collect()
 
 referralFact_raw$total <- NULL
 
@@ -396,12 +396,12 @@ referrals_processed <- referrals_merged %>%
 
 # Unique Referral Volume by Appointment Status -------------------------------------------------
 referral_vol <- referrals_processed %>%
-  group_by(SentBySite, SentByDepID, SentByDept, SentBySpecialty,  
-           ReceivedBySite, ReceivedByDepID, ReceivedByDept, ReceivedBySpecialty,
-           StartInstant, createdYear, createdMonthYear, createdMonNum, createdMonth, createdWeek, ReferralKey, ReferralEpicId, priority_type, ApptStatusFinal, 
+  group_by(SentBySite, SentByDepID, SentByDept, SentBySpecialty,
+           ReceivedBySite, ReceivedByDepID, ReceivedByDept, ReceivedBySpecialty, ReferredToDepartmentSpecialty,
+           StartInstant, createdYear, createdMonthYear, createdMonNum, createdMonth, createdWeek, ReferralKey, ReferralEpicId, priority_type, ApptStatusFinal,
            Class, WasPatientContactedWithin12Hours_X, CreationToFirstEncounterDate, ExpirationInstant,
            ProfessionalChargeEstimate, HospitalChargeEstimate, Redirected, Rejected, TriageRejectionReason, InAnyWorkqueue,
-           Patient_MRN, ICD_10_Chosen, 
+           Patient_MRN, ICD_10_Chosen,
            Status, CloseReason, SchedulingStatus) %>%
   summarise(total = n()) %>%
   mutate(SentBySpecialty = case_when(SentByDept %in% c("MS EPICCARE LINK","MS RYAN CENTER LINK") ~ "ECL"
