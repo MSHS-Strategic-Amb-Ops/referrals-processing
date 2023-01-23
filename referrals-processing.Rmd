@@ -439,82 +439,82 @@ saveRDS(referral_vol, paste0(path,"referral_vol.rds"))
 ```{r Referral WQ Data Import, echo = FALSE, warning = FALSE, message = FALSE}
 
 # Import WQ Data ---------------------------------------------------------------
-wq_history_conn <- tbl(conn1, "ReferralWorkqueueEventFactX")
-wq_reasons_conn <- tbl(conn1, "ReferralWQReasons")
+# wq_history_conn <- tbl(conn1, "ReferralWorkqueueEventFactX")
+# wq_reasons_conn <- tbl(conn1, "ReferralWQReasons")
 
 ```
 
 
 ```{r WQ Data Processing, echo = FALSE, warning = FALSE, message = FALSE}
 
-# Subset WQ History Data based on Referrals Data -------------------------------
-wq_history_merged <- left_join(referral_vol[,c("ReferralKey", "ReferralEpicId", "Status", "SchedulingStatus", "InAnyWorkqueue", "priority_type")], 
-                               test <- wq_history_conn %>% 
-                                 filter(ReferralKey >= 0) %>%
-                                 # filter(ReferralType %in% c("TO","FROM")) %>% # Remove unspecified wq types 
-                                 filter(`_CreationInstant` >= as.Date("2022-04-01")) %>%
-                                 collect())
-
-wq_history_merged <- wq_history_merged %>% # Filter WQ History based on Referral IDs found in Referrals table
-  filter(ReferralKey %in% unique(referral_vol$ReferralKey))
-
-wq_history_merged <- wq_history_merged %>% 
-  filter(!is.na(EventDateKey)) %>%
-  mutate(EventDate = as.Date(lubridate::ymd(EventDateKey)),
-         EventTime = paste0(" ",sub('(\\d{2})$', ':\\1', EventTimeKey)),
-         EventTime = gsub(" :", "00:", EventTime),
-         EventTime = gsub(" ","",EventTime),
-         releaseDate = as.Date(lubridate::ymd(ReleaseDateKey))) %>%
-  mutate(EventDateTime = as.POSIXct(paste(EventDate, EventTime), format="%Y-%m-%d %H:%M"))
-
-wq_history_merged$releaseDate <- case_when(is.na(wq_history_merged$releaseDate) ~ Sys.Date(),
-                                           TRUE ~ wq_history_merged$releaseDate) 
-
-
-wq_history_merged <- wq_history_merged %>%
-  arrange(EventDateTime, releaseDate) %>%
-  arrange(ReferralKey) %>%
-  group_by(ReferralKey, EpicWorkqueueId, releaseDate) %>%
-  mutate(ID = seq_len(n())) %>%
-  mutate(wq_entered = min(EventDateTime),
-         wq_exited = max(releaseDate),
-         wq_latest_reason = case_when(EventDateTime == wq_entered & releaseDate == wq_exited ~ ReferralWorkqueueReason,
-                                      TRUE ~ ""))
-
-
-# Unique WQ Volume Data with WQ Entered and Existed Times
-wq_volume_data <- wq_history_merged %>%
-  filter(wq_latest_reason != "") %>%
-  group_by(ReferralKey, ReferralEpicId, InAnyWorkqueue, ReferralType, EpicWorkqueueId, wq_entered, wq_exited, wq_latest_reason) %>%
-  summarise(referral_type = n()) %>%
-  mutate(wq_entered = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%Y-%m-%d %HH:%MM:%SS"),
-         wq_enteredWeek = floor_date(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"), unit="week", week_start = 7),
-         wq_enteredYear = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%Y"),
-         wq_enteredMonNum = as.numeric(format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%m")),
-         wq_enteredMonth = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%B"),
-         wq_enteredMonthYear = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%m-%Y"),
-         wq_enteredDay = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%A")) %>%
-  mutate(wq_exitedWeek = floor_date(as.Date(wq_exited, "%Y-%m-%d"), unit="week", week_start = 7),
-         wq_exitedYear = format(as.Date(wq_exited, "%Y-%m-%d"),"%Y"),
-         wq_exitedMonNum = as.numeric(format(as.Date(wq_exited, "%Y-%m-%d"),"%m")),
-         wq_exitedMonth = format(as.Date(wq_exited, "%Y-%m-%d"),"%B"),
-         wq_exitedMonthYear = format(as.Date(wq_exited, "%Y-%m-%d"),"%m-%Y"),
-         wq_exitedDay = format(as.Date(wq_exited, "%Y-%m-%d"),"%A")) %>%
-  mutate(wq_latest_reason = toupper(wq_latest_reason)) %>%
-  mutate(reason_type = case_when(ReferralType == "FROM" & str_detect(wq_latest_reason, "DEACTIVATED OR INVALID|NO DEPT|WTC NEED") ~ "Missing department",
-                                 ReferralType == "FROM" & str_detect(wq_latest_reason, "OUTGOING") ~ "Outgoing Referral needs scheduling",
-                                 ReferralType == "FROM" & str_detect(wq_latest_reason, "TRIAGE") ~ "Triage rejected",
-                                 ReferralType == "FROM" & str_detect(wq_latest_reason, "PSYCH") ~ "Psych referrals",
-                                 ReferralType == "TO" & str_detect(wq_latest_reason, "NEEDS SCHEDULING|NEEDS TO BE WORKED|INCOMING REFERRAL NEEDS AUTH") 
-                                 ~ "Both scheduling and authorization outstanding",
-                                 ReferralType == "TO" & str_detect(wq_latest_reason, "AUTHORIZED AND NEED SCHEDULING|NEED SCHEDULING") ~ "Authorized but scheduling needed",
-                                 ReferralType == "TO" & str_detect(wq_latest_reason, "NEED AUTHORIZATION|NO AUTHORIZATION|INVALID AUTH NUMBER") ~ "Authorization needed",
-                                 ReferralType == "TO" & str_detect(wq_latest_reason, "UNABLE TO CONTACT") ~ "Unable to Contact Patient",
-                                 ReferralType == "TO" & str_detect(wq_latest_reason, " RFL INVALID AUTH NUMBER|W/O LINKED REFERRAL") ~ "Scheduled but Authorization is outstanding",
-                                 TRUE ~ "Other"
-                                 ))
-wq_volume_data$wq_entered <- format(as.Date(wq_volume_data$wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%Y-%m-%d")
-wq_volume_data$referral_age <- difftime(wq_volume_data$wq_exited, as.Date(wq_volume_data$wq_entered, "%Y-%m-%d"), units = "days")
+# # Subset WQ History Data based on Referrals Data -------------------------------
+# wq_history_merged <- left_join(referral_vol[,c("ReferralKey", "ReferralEpicId", "Status", "SchedulingStatus", "InAnyWorkqueue", "priority_type")], 
+#                                test <- wq_history_conn %>% 
+#                                  filter(ReferralKey >= 0) %>%
+#                                  # filter(ReferralType %in% c("TO","FROM")) %>% # Remove unspecified wq types 
+#                                  filter(`_CreationInstant` >= as.Date("2022-04-01")) %>%
+#                                  collect())
+# 
+# wq_history_merged <- wq_history_merged %>% # Filter WQ History based on Referral IDs found in Referrals table
+#   filter(ReferralKey %in% unique(referral_vol$ReferralKey))
+# 
+# wq_history_merged <- wq_history_merged %>% 
+#   filter(!is.na(EventDateKey)) %>%
+#   mutate(EventDate = as.Date(lubridate::ymd(EventDateKey)),
+#          EventTime = paste0(" ",sub('(\\d{2})$', ':\\1', EventTimeKey)),
+#          EventTime = gsub(" :", "00:", EventTime),
+#          EventTime = gsub(" ","",EventTime),
+#          releaseDate = as.Date(lubridate::ymd(ReleaseDateKey))) %>%
+#   mutate(EventDateTime = as.POSIXct(paste(EventDate, EventTime), format="%Y-%m-%d %H:%M"))
+# 
+# # wq_history_merged$releaseDate <- case_when(is.na(wq_history_merged$releaseDate) ~ Sys.Date(),
+# #                                            TRUE ~ wq_history_merged$releaseDate) 
+# 
+# 
+# wq_history_merged <- wq_history_merged %>%
+#   arrange(EventDateTime, releaseDate) %>%
+#   arrange(ReferralKey) %>%
+#   group_by(ReferralKey, EpicWorkqueueId, releaseDate) %>%
+#   mutate(ID = seq_len(n())) %>%
+#   mutate(wq_entered = min(EventDateTime),
+#          wq_exited = max(releaseDate),
+#          wq_latest_reason = case_when(EventDateTime == wq_entered & releaseDate == wq_exited ~ ReferralWorkqueueReason,
+#                                       TRUE ~ ""))
+# 
+# 
+# # Unique WQ Volume Data with WQ Entered and Existed Times
+# wq_volume_data <- wq_history_merged %>%
+#   filter(wq_latest_reason != "") %>%
+#   group_by(ReferralKey, ReferralEpicId, InAnyWorkqueue, ReferralType, EpicWorkqueueId, wq_entered, wq_exited, wq_latest_reason) %>%
+#   summarise(referral_type = n()) %>%
+#   mutate(wq_entered = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%Y-%m-%d %HH:%MM:%SS"),
+#          wq_enteredWeek = floor_date(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"), unit="week", week_start = 7),
+#          wq_enteredYear = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%Y"),
+#          wq_enteredMonNum = as.numeric(format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%m")),
+#          wq_enteredMonth = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%B"),
+#          wq_enteredMonthYear = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%m-%Y"),
+#          wq_enteredDay = format(as.Date(wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%A")) %>%
+#   mutate(wq_exitedWeek = floor_date(as.Date(wq_exited, "%Y-%m-%d"), unit="week", week_start = 7),
+#          wq_exitedYear = format(as.Date(wq_exited, "%Y-%m-%d"),"%Y"),
+#          wq_exitedMonNum = as.numeric(format(as.Date(wq_exited, "%Y-%m-%d"),"%m")),
+#          wq_exitedMonth = format(as.Date(wq_exited, "%Y-%m-%d"),"%B"),
+#          wq_exitedMonthYear = format(as.Date(wq_exited, "%Y-%m-%d"),"%m-%Y"),
+#          wq_exitedDay = format(as.Date(wq_exited, "%Y-%m-%d"),"%A")) %>%
+#   mutate(wq_latest_reason = toupper(wq_latest_reason)) %>%
+#   mutate(reason_type = case_when(ReferralType == "FROM" & str_detect(wq_latest_reason, "DEACTIVATED OR INVALID|NO DEPT|WTC NEED") ~ "Missing department",
+#                                  ReferralType == "FROM" & str_detect(wq_latest_reason, "OUTGOING") ~ "Outgoing Referral needs scheduling",
+#                                  ReferralType == "FROM" & str_detect(wq_latest_reason, "TRIAGE") ~ "Triage rejected",
+#                                  ReferralType == "FROM" & str_detect(wq_latest_reason, "PSYCH") ~ "Psych referrals",
+#                                  ReferralType == "TO" & str_detect(wq_latest_reason, "NEEDS SCHEDULING|NEEDS TO BE WORKED|INCOMING REFERRAL NEEDS AUTH") 
+#                                  ~ "Both scheduling and authorization outstanding",
+#                                  ReferralType == "TO" & str_detect(wq_latest_reason, "AUTHORIZED AND NEED SCHEDULING|NEED SCHEDULING") ~ "Authorized but scheduling needed",
+#                                  ReferralType == "TO" & str_detect(wq_latest_reason, "NEED AUTHORIZATION|NO AUTHORIZATION|INVALID AUTH NUMBER") ~ "Authorization needed",
+#                                  ReferralType == "TO" & str_detect(wq_latest_reason, "UNABLE TO CONTACT") ~ "Unable to Contact Patient",
+#                                  ReferralType == "TO" & str_detect(wq_latest_reason, " RFL INVALID AUTH NUMBER|W/O LINKED REFERRAL") ~ "Scheduled but Authorization is outstanding",
+#                                  TRUE ~ "Other"
+#                                  ))
+# wq_volume_data$wq_entered <- format(as.Date(wq_volume_data$wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%Y-%m-%d")
+# wq_volume_data$referral_age <- difftime(wq_volume_data$wq_exited, as.Date(wq_volume_data$wq_entered, "%Y-%m-%d"), units = "days")
 
 # wq_volume_data$ wq_enteredDay <- format(as.Date(wq_volume_data$wq_entered, "%Y-%m-%d %HH:%MM:%SS"),"%A")
 # wq_volume_data$wq_exitedDay = format(as.Date(wq_volume_data$wq_exited, "%Y-%m-%d"),"%A")
@@ -525,8 +525,8 @@ wq_volume_data$referral_age <- difftime(wq_volume_data$wq_exited, as.Date(wq_vol
 
 ```{r Workqueue History Data Output, echo = FALSE, warning = FALSE, message = FALSE}
 
-path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
-saveRDS(wq_volume_data, paste0(path,"wq_volume_data.rds"))
+# path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
+# saveRDS(wq_volume_data, paste0(path,"wq_volume_data.rds"))
 
 # rm(wq_volume_data)
 # invisible(gc())
