@@ -311,10 +311,11 @@ reporting_monthNum <- format(as.Date(report_run_date), "%m")
 conn1 <- dbPool(drv = odbc(), dsn = "Caboodle", timeout = 30)
 
 # Import Referrals+Visit Data --------------------------------------------------
+# referrals_raw <- sqlQuery(conn1, "SELECT * FROM PRDREPORT.FullAccess.Referrals") # Master Referrals Data
 referrals_conn <- tbl(conn1, "Referrals")
 referrals_raw <- referrals_conn %>%
   mutate(StartInstant = as.Date(StartInstant)) %>%
-  filter(StartInstant >= as.Date("2022-04-01") & StartInstant < report_run_date) %>%
+  filter(StartInstant >= as.Date("2022-04-01") & StartInstant <= report_run_date) %>%
   filter(Status != "Canceled") %>%
   collect()
 
@@ -323,10 +324,8 @@ referrals_raw <- referrals_conn %>%
 referralFact_conn <- tbl(conn1, "ReferralFact")
 
 referralFact_raw <- referralFact_conn %>%
-  # head(1000) %>%
-  # collect()
   mutate(StartInstant = as.Date(StartInstant)) %>%
-  filter(StartInstant >= as.Date("2022-04-01") & StartInstant < report_run_date) %>%
+  filter(StartInstant >= as.Date("2022-04-01") & StartInstant <= report_run_date) %>%
   group_by(ReferralKey, ReferredToDepartmentSpecialty, StartInstant, `_CreationInstant`, `_LastUpdatedInstant`, LastEnteredWorkqueueDateKey_X,
            LastEnteredWorkqueueTimeKey_X, LastEnteredWorkqueueName_X,
            Class, Priority, Redirected, Rejected, TriageRejectionReason, InAnyWorkqueue, StatusReason, SchedulingStatus,
@@ -343,20 +342,19 @@ referralFact_raw$total <- NULL
 #   filter(StartInstant == as.Date("2022-11-03")) %>%
 #   collect()
 
-visitFact_conn <- tbl(conn1, "VisitFact")
-visitFact_raw <- visitFact_conn %>%
-  filter(ReferralKey >0) %>%
-  group_by(ReferralKey, AppointmentStatus, AppointmentCreationDateKey, AppointmentCancellationDateKey) %>%
-  summarise(total = n()) %>%
-  collect() %>%
-  group_by(ReferralKey) %>%
-  mutate(first_appt = as.Date(as.character(min(AppointmentCreationDateKey)),  format = "%Y%m%d"))
-# 
-# # Append Additional Referral Columns -------------------------------------------
-# referrals_merged <- left_join(referrals_raw, subset(referralFact_raw, select = -c(StartInstant, Priority)))
-# referrals_merged <- referrals_merged %>%
-#   mutate(SentByDepID = as.character(SentByDepID),
-#          ReceivedByDepID = as.character(ReceivedByDepID))
+# visitFact_conn <- tbl(conn1, "VisitFact")
+# visitFact_raw <- visitFact_conn %>%
+#   filter(AppointmentStatus == "Arrived") %>%
+#   filter(!is.na(PaymenetDue)) %>%
+#   head(10000) %>%
+#   collect()
+# referral_fact_all <- sqlQuery(conn1, "SELECT TOP 200 * FROM PRDREPORT.FullAccess.ReferralFact ORDER BY StartInstant")
+
+# Append Additional Referral Columns -------------------------------------------
+referrals_merged <- left_join(referrals_raw, subset(referralFact_raw, select = -c(StartInstant, Priority)))
+referrals_merged <- referrals_merged %>%
+  mutate(SentByDepID = as.character(SentByDepID),
+         ReceivedByDepID = as.character(ReceivedByDepID))
 
 ```
 
@@ -364,7 +362,7 @@ visitFact_raw <- visitFact_conn %>%
 ```{r Referrals Data Processing, echo = FALSE, warning = FALSE, message = FALSE}
 
 # Referrals Raw Data Processing ------------------------------------------------
-# Priority Groups =============================================================
+## Priority Groups =============================================================
 referrals_merged <- referrals_merged %>%
   mutate(createdWeek = floor_date(as.Date(StartInstant, "%Y-%m-%d"), unit="week", week_start = 7),
          createdYear = format(as.Date(StartInstant, "%Y-%m-%d"),"%Y"),
@@ -423,18 +421,7 @@ referral_vol <- referrals_processed %>%
                                      ,TRUE ~ SentBySite))
 
 referral_vol$referral_age <- difftime(report_run_date, as.Date(referral_vol$StartInstant, "%Y-%m%-%d"), units = "days")
-
-referral_vol$first_appt_created <- visitFact_raw$first_appt[match(referral_vol$ReferralKey, visitFact_raw$ReferralKey)]
-referral_vol <- referral_vol %>%
-  mutate(scheduledWeek = floor_date(as.Date(first_appt_created, "%Y-%m-%d"), unit="week", week_start = 7),
-         scheduledYear = format(as.Date(first_appt_created, "%Y-%m-%d"),"%Y"),
-         scheduledMonNum = as.numeric(format(as.Date(first_appt_created, "%Y-%m-%d"),"%m")),
-         scheduledMonth = format(as.Date(first_appt_created, "%Y-%m-%d"),"%B"),
-         scheduledMonthYear = format(as.Date(first_appt_created, "%Y-%m-%d"),"%m-%Y")) 
-
-
-# saveRDS(referral_vol, "referral_vol.rds")
-# referral_vol <- readRDS("referral_vol.rds")
+  
 ```
 
 
