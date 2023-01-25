@@ -311,7 +311,6 @@ reporting_monthNum <- format(as.Date(report_run_date), "%m")
 conn1 <- dbPool(drv = odbc(), dsn = "Caboodle", timeout = 30)
 
 # Import Referrals+Visit Data --------------------------------------------------
-referrals_raw <- sqlQuery(conn1, "SELECT * FROM PRDREPORT.FullAccess.Referrals") # Master Referrals Data
 referrals_conn <- tbl(conn1, "Referrals")
 referrals_raw <- referrals_conn %>%
   mutate(StartInstant = as.Date(StartInstant)) %>%
