@@ -412,7 +412,7 @@ referral_vol <- referrals_processed %>%
                                 # ,SentByDept == "EMERGENCY DEPARTMENT PSYCH" ~ "ED Psych"
                                 # ,SentByDept == "CPEP PSYCH ED BI" ~ "ED Psych"
                                 , TRUE ~ SentBySpecialty)) %>%
-  mutate(SentBySite = case_when(SentByDept %in% c("MS EPICCARE LINK","MS RYAN CENTER LINK") ~ "ECL"
+  mutate(SentBySite = case_when(SentByDept %in% c("MS RYAN CENTER LINK") ~ "RYAN CENTER"
                                      # ,SentByDept == "EMERGENCY DEPT BI" ~ "MSBI"
                                      # ,SentByDept == "EMERGENCY DEPT MORNINGSIDE" ~ "MSM"
                                      # ,SentByDept == "EMERGENCY DEPT WEST" ~ "MSW"
