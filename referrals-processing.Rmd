@@ -193,7 +193,8 @@ MountSinai_colors <- c(
   `med grey`     = "#a5a7a5",
   `light purple` = "#c7c6ef",
   `light pink`   = "#fcc9e9",
-  `light blue`   = "#c9f0ff",
+  `light blue`   = "#c9f0ff
+",
   `light grey`   = "#dddedd"
   )
 
@@ -315,9 +316,10 @@ conn1 <- dbPool(drv = odbc(), dsn = "Caboodle", timeout = 30)
 referrals_conn <- tbl(conn1, "Referrals")
 referrals_raw <- referrals_conn %>%
   mutate(StartInstant = as.Date(StartInstant)) %>%
-  filter(StartInstant >= as.Date("2022-04-01") & StartInstant <= report_run_date) %>%
+  filter(StartInstant >= as.Date("2022-04-01") & StartInstant < report_run_date) %>%
   filter(Status != "Canceled") %>%
   collect()
+
 
 # Import Referrals Data for Addtional Referral Details -------------------------
 # referralFactAll <- sqlQuery(conn1, "SELECT TOP 10* FROM PRDREPORT.FullAccess.ReferralFact")
@@ -407,11 +409,11 @@ referral_vol <- referrals_processed %>%
            Patient_MRN, ICD_10_Chosen,
            Status, CloseReason, SchedulingStatus) %>%
   summarise(total = n()) %>%
-  mutate(SentBySpecialty = case_when(SentByDept %in% c("MS EPICCARE LINK","MS RYAN CENTER LINK") ~ "ECL"
-                                # ,str_detect(toupper(SentByDept), "EMERGENCY") ~ "ED"
-                                # ,SentByDept == "EMERGENCY DEPARTMENT PSYCH" ~ "ED Psych"
-                                # ,SentByDept == "CPEP PSYCH ED BI" ~ "ED Psych"
-                                , TRUE ~ SentBySpecialty)) %>%
+  # mutate(SentBySpecialty = case_when(SentByDept %in% c("MS EPICCARE LINK","MS RYAN CENTER LINK") ~ "ECL"
+  #                               # ,str_detect(toupper(SentByDept), "EMERGENCY") ~ "ED"
+  #                               # ,SentByDept == "EMERGENCY DEPARTMENT PSYCH" ~ "ED Psych"
+  #                               # ,SentByDept == "CPEP PSYCH ED BI" ~ "ED Psych"
+  #                               , TRUE ~ SentBySpecialty)) %>%
   mutate(SentBySite = case_when(SentByDept %in% c("MS RYAN CENTER LINK") ~ "RYAN CENTER"
                                      # ,SentByDept == "EMERGENCY DEPT BI" ~ "MSBI"
                                      # ,SentByDept == "EMERGENCY DEPT MORNINGSIDE" ~ "MSM"
@@ -423,7 +425,7 @@ referral_vol <- referrals_processed %>%
                                      # ,SentByDept == "CPEP PSYCH ED BI" ~ "MSBI"
                                      ,TRUE ~ SentBySite))
 
-referral_vol$referral_age <- difftime(report_run_date, as.Date(referral_vol$StartInstant, "%Y-%m%-%d"), units = "days")
+referral_vol$referral_age <- difftime(report_run_date-1, as.Date(referral_vol$StartInstant, "%Y-%m%-%d"), units = "days")
 
 
 # Merge Appointment Scheduled Date 
@@ -438,7 +440,7 @@ referral_vol <- referral_vol %>%
   mutate(leadDays = difftime(StartInstant, first_appt_created, units = "days")) 
 
 
-# saveRDS(referral_vol, "referral_vol.rds")
+saveRDS(referral_vol, "referral_vol.rds")
 # referral_vol <- readRDS("referral_vol.rds")
 ```
 
@@ -602,6 +604,12 @@ saveRDS(referral_vol, paste0(path,"referral_vol.rds"))
 
 # path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
 # saveRDS(wq_reasons_raw, paste0(path,"wq_reasons_data.rds"))
+
+```
+
+
+```{r}
+
 
 ```
 
