@@ -436,12 +436,39 @@ referral_vol <- referral_vol %>%
          scheduledMonNum = as.numeric(format(as.Date(first_appt_created, "%Y-%m-%d"),"%m")),
          scheduledMonth = format(as.Date(first_appt_created, "%Y-%m-%d"),"%B"),
          scheduledMonthYear = format(as.Date(first_appt_created, "%Y-%m-%d"),"%m-%Y"),
-         scheduledYearMonth = format(as.Date(first_appt_created, "%Y-%m-%d"),"%Y-%m")) %>%
-  mutate(leadDays = difftime(StartInstant, first_appt_created, units = "days")) 
+         scheduledYearMonth = format(as.Date(first_appt_created, "%Y-%m-%d"),"%Y-%m")) 
+  # mutate(leadDays = difftime(StartInstant, first_appt_created, units = "days")) 
 
 
-saveRDS(referral_vol, "referral_vol.rds")
+# saveRDS(referral_vol, "referral_vol.rds")
 # referral_vol <- readRDS("referral_vol.rds")
+```
+
+
+```{r Referral Class Analysis, echo = FALSE, warning = FALSE, message = FALSE}
+
+# mshs <- c("MSH- Ambulatory Care", "ED", "MSH-MSDFP", "MSW", "MSDMG", "MSUS", "Network", "Other", "MSM", "MS Now", "MSBI", "MSHP", "Oncology", "MSQ", "PSYCH ED")
+# ecl <- c("RYAN CENTER", "ECL")
+# 
+# referral_vol$SentByProvider <- referrals_raw$SentByProvider[match(referral_vol$ReferralKey, referrals_raw$ReferralKey)]
+# referral_vol$ReceivedByProvider <- referrals_raw$ReceivedByProvider[match(referral_vol$ReferralKey, referrals_raw$ReferralKey)]
+# 
+# class_validation <- referral_vol %>%
+#   group_by(ReferralEpicId, Class, SentBySite, SentBySpecialty, SentByDept, SentByProvider, ReceivedBySite, ReferredToDepartmentSpecialty, ReceivedByDept, ReceivedByProvider) %>%
+#   summarise(total = n()) %>%
+#   mutate(SentBySiteType = case_when(SentBySite %in% mshs ~ "MSHS", 
+#                                     SentBySite %in% ecl ~ "ECL/ RYAN",
+#                                     TRUE ~ SentBySite),
+#          ReceivedBySiteType = case_when(ReceivedBySite %in% mshs ~ "MSHS", 
+#                                     ReceivedBySite %in% ecl ~ "ECL/ RYAN",
+#                                     TRUE ~ ReceivedBySite))
+# 
+# summary <- class_validation %>%
+#   group_by(Class, SentBySiteType, SentBySite, SentByDept, SentByProvider, ReceivedBySiteType, ReceivedBySite, ReceivedByDept, ReceivedByProvider) %>%
+#   summarise(total = n())
+# 
+# write_xlsx(summary, "Referral Class Validation.xlsx")
+
 ```
 
 
