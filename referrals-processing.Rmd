@@ -320,6 +320,10 @@ referrals_raw <- referrals_conn %>%
   filter(Status != "Canceled") %>%
   collect()
 
+# dep <- referrals_conn %>%
+#   group_by(ReceivedBySite, ReceivedByDept) %>%
+#   summarise(total = n()) %>%
+#   collect()
 
 # Import Referrals Data for Addtional Referral Details -------------------------
 # referralFactAll <- sqlQuery(conn1, "SELECT TOP 10* FROM PRDREPORT.FullAccess.ReferralFact")
@@ -399,10 +403,10 @@ referrals_processed <- referrals_merged %>%
                                      ,TRUE ~ "Pending"))
 
 
-# Unique Referral Volume by Appointment Status -------------------------------------------------
+# Unique Referral Volume by Appointment Status (Department) -------------------------------------------------
 referral_vol <- referrals_processed %>%
-  group_by(SentBySite, SentByDepID, SentByDept, SentBySpecialty,
-           ReceivedBySite, ReceivedByDepID, ReceivedByDept, ReceivedBySpecialty, ReferredToDepartmentSpecialty,
+  group_by(SentBySite, SentByDepID, SentByDept, SentBySpecialty, SentByProvider, SentByProvNPI,
+           ReceivedBySite, ReceivedByDepID, ReceivedByDept, ReceivedBySpecialty, ReferredToDepartmentSpecialty, ReceivedByProvider, ReceivedByProvNPI,
            StartInstant, createdYear, createdMonthYear, createdMonNum, createdMonth, createdWeek, ReferralKey, ReferralEpicId, ProcedureName, priority_type, ApptStatusFinal,
            Class, WasPatientContactedWithin12Hours_X, CreationToFirstEncounterDate, ExpirationInstant,
            ProfessionalChargeEstimate, HospitalChargeEstimate, Redirected, Rejected, TriageRejectionReason, InAnyWorkqueue,
