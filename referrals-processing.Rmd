@@ -304,6 +304,21 @@ reporting_monthNum <- format(as.Date(report_run_date), "%m")
 ```
 
 
+```{r Connectionto Coverage, echo = FALSE, warning = FALSE, message = FALSE}
+
+conn2 <- dbConnect(odbc(), 
+                  "Clarity_prod", 
+                  uid = "kweons01" , 
+                  pwd = "kweons01123$")
+
+
+coverage_tbl <- tbl(conn2, "V_COVERAGE_PAYOR_PLAN")
+referral_wq_clarity_tbl <- tbl(conn2, "REFERRAL_WQ")
+
+
+
+```
+
 
 ```{r Referrals Data Importing, echo = FALSE, warning = FALSE, message = FALSE}
 
@@ -339,11 +354,23 @@ referralFact_raw <- referralFact_conn %>%
            Class, Priority, Redirected, Rejected, TriageRejectionReason, InAnyWorkqueue, StatusReason, SchedulingStatus,
            FirstCallMadeInstant, FirstEncounterCreatedInstant, FirstEncounterInstant, ExpirationInstant,
            WasPatientContactedWithin12Hours_X,
-           ProfessionalChargeAmount, ProfessionalChargeEstimate, HospitalChargeEstimate) %>%
+           ProfessionalChargeAmount, ProfessionalChargeEstimate, HospitalChargeEstimate,
+           PrimaryCoverageKey) %>%
   summarise(total = n()) %>%
   collect()
 
+
 referralFact_raw$total <- NULL
+
+
+referralFact_raw <- referralFact_raw %>%
+  mutate(PrimaryCoverageKey = as.character(PrimaryCoverageKey)) %>%
+  left_join(coverage_tbl %>% 
+              mutate(COVERAGE_ID = as.character(COVERAGE_ID)) %>%
+              dplyr::select(COVERAGE_ID, FIN_CLASS_NAME, PAYOR_NAME, BENEFIT_PLAN_NAME),
+            by = c("PrimaryCoverageKey" = "COVERAGE_ID"),
+            copy = TRUE)
+
 
 # referralFact_all <- referralFact_conn %>%
 #   mutate(StartInstant = as.Date(StartInstant)) %>%
@@ -366,6 +393,7 @@ referrals_merged <- referrals_merged %>%
          ReceivedByDepID = as.character(ReceivedByDepID))
 
 ```
+
 
 
 ```{r Referrals Data Processing, echo = FALSE, warning = FALSE, message = FALSE}
@@ -411,7 +439,8 @@ referral_vol <- referrals_processed %>%
            Class, WasPatientContactedWithin12Hours_X, CreationToFirstEncounterDate, ExpirationInstant,
            ProfessionalChargeEstimate, HospitalChargeEstimate, Redirected, Rejected, TriageRejectionReason, InAnyWorkqueue,
            Patient_MRN, ICD_10_Chosen,
-           Status, CloseReason, SchedulingStatus) %>%
+           Status, CloseReason, SchedulingStatus,
+           FIN_CLASS_NAME) %>%
   summarise(total = n()) %>%
   # mutate(SentBySpecialty = case_when(SentByDept %in% c("MS EPICCARE LINK","MS RYAN CENTER LINK") ~ "ECL"
   #                               # ,str_detect(toupper(SentByDept), "EMERGENCY") ~ "ED"
@@ -446,6 +475,30 @@ referral_vol <- referral_vol %>%
 
 # saveRDS(referral_vol, "referral_vol.rds")
 # referral_vol <- readRDS("referral_vol.rds")
+```
+
+
+```{r ECL Referrals Analysis, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Referrals received from Jan to April 2023
+# ecl_referrals <- read_excel("ECL Referrals from Caboodle.xlsx")
+# 
+# 
+# mshs_sites <- c("MSBI", "MSDMG", "MSH- Ambulatory Care", "MSH-MSDFP", 
+#                          "MSM", "MSUS", "MSW", "Network")
+#   
+#   # Referrals Received Data 
+# referral_vol_ecl <- referral_vol %>%
+#   filter(ReceivedByDept != "*Unspecified") %>%
+#   filter(ReferredToDepartmentSpecialty != "*Unspecified") %>%
+#   filter(createdYear == "2023") %>%
+#   filter(createdMonNum <= 4) 
+#   
+# 
+# referral_vol_ecl$userContext_X <- ecl_referrals$UserContext_X[match(referral_vol_ecl$ReferralEpicId, ecl_referrals$ReferralEpicId)]
+# 
+# write_xlsx(referral_vol_ecl, "ECL Referrals Processed.xlsx")
+
 ```
 
 
@@ -484,14 +537,18 @@ saveRDS(referral_vol, paste0(path,"referral_vol.rds"))
 # rm(referral_vol)
 # invisible(gc())
 
+# save(referral_vol, file = "referral_vol_03052024.RData")
+
 ```
 
 
 ```{r Referral WQ Data Import, echo = FALSE, warning = FALSE, message = FALSE}
 
-# Import WQ Data ---------------------------------------------------------------
+# # Import WQ Data ---------------------------------------------------------------
 # wq_history_conn <- tbl(conn1, "ReferralWorkqueueEventFactX")
 # wq_reasons_conn <- tbl(conn1, "ReferralWQReasons")
+# 
+# check <- left_join(wq_history)
 
 ```
 
@@ -635,12 +692,6 @@ saveRDS(referral_vol, paste0(path,"referral_vol.rds"))
 
 # path <- "/nfs/data/Applications/Ambulatory/Data_Updated/"
 # saveRDS(wq_reasons_raw, paste0(path,"wq_reasons_data.rds"))
-
-```
-
-
-```{r}
-
 
 ```
 
