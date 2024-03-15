@@ -440,7 +440,7 @@ referral_vol <- referrals_processed %>%
            ProfessionalChargeEstimate, HospitalChargeEstimate, Redirected, Rejected, TriageRejectionReason, InAnyWorkqueue,
            Patient_MRN, ICD_10_Chosen,
            Status, CloseReason, SchedulingStatus,
-           FIN_CLASS_NAME) %>%
+           FIN_CLASS_NAME, PAYOR_NAME, BENEFIT_PLAN_NAME) %>%
   summarise(total = n()) %>%
   # mutate(SentBySpecialty = case_when(SentByDept %in% c("MS EPICCARE LINK","MS RYAN CENTER LINK") ~ "ECL"
   #                               # ,str_detect(toupper(SentByDept), "EMERGENCY") ~ "ED"
