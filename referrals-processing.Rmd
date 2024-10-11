@@ -328,7 +328,7 @@ referral_wq_clarity_tbl <- tbl(conn2, "REFERRAL_WQ")
 conn1 <- dbPool(drv = odbc(), dsn = "Caboodle", timeout = 30)
 
 # Import Referrals+Visit Data --------------------------------------------------
-referrals_conn <- tbl(conn1, "Referrals")
+referrals_conn <- tbl(conn1, "ReferralsDataView")
 referrals_raw <- referrals_conn %>%
   mutate(StartInstant = as.Date(StartInstant)) %>%
   filter(StartInstant >= as.Date("2022-04-01") & StartInstant < report_run_date) %>%
@@ -476,6 +476,28 @@ referral_vol <- referral_vol %>%
 # saveRDS(referral_vol, "referral_vol.rds")
 # referral_vol <- readRDS("referral_vol.rds")
 ```
+
+
+```{r}
+
+pt_referrals <- referral_vol %>%
+  filter(str_detect(ProcedureName, "PHYSICAL THERAPY"))
+
+require(openxlsx)
+write.csv(pt_referrals, "PT Referrals.csv")
+
+pt_summary <- pt_referrals %>%
+  group_by(createdYear, createdMonNum, createdMonthYear, ProcedureName, 
+           SentBySite, SentBySpecialty, SentByDept, SentByDepID, 
+           ReceivedBySite, ReceivedBySpecialty, ReceivedByDept, ReceivedByDepID,
+           ApptStatusFinal, Status,
+           ICD_10_Chosen, FIN_CLASS_NAME)
+  # filter(ReceivedByDept != "*Unspecified") %>%
+  # filter(Class != "Outgoing") %>%
+  # filter(Status != "Denied") %>%
+
+```
+
 
 
 ```{r ECL Referrals Analysis, echo = FALSE, warning = FALSE, message = FALSE}
